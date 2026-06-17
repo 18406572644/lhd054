@@ -162,18 +162,19 @@ const totalCount = computed(() => keyData.value.reduce((sum, k) => sum + k.count
         </div>
         
         <div class="chart-wrapper" v-if="!loading && keyData.length > 0">
-          <v-chart :option="pieOption" autoresize />
-        </div>
-        
-        <div class="empty-state" v-else-if="!loading">
-          <div class="empty-icon">📊</div>
-          <div class="empty-text">暂无数据，开始打字吧！</div>
-        </div>
-        
-        <div class="empty-state" v-else>
-          <div class="empty-icon">⏳</div>
-          <div class="empty-text">加载中...</div>
-        </div>
+        <v-chart :option="pieOption" autoresize />
+      </div>
+      
+      <div class="empty-state" v-else-if="!loading && keyData.length === 0">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">暂无按键数据</div>
+        <div class="empty-hint">开始打字即可统计按键频率</div>
+      </div>
+      
+      <div class="empty-state" v-else>
+        <div class="empty-icon">⏳</div>
+        <div class="empty-text">加载中...</div>
+      </div>
       </div>
     </div>
     
@@ -189,7 +190,7 @@ const totalCount = computed(() => keyData.value.reduce((sum, k) => sum + k.count
         </div>
       </div>
       
-      <div class="ranking-list" v-if="!loading">
+      <div class="ranking-list" v-if="!loading && keyData.length > 0">
         <div class="ranking-item" v-for="(item, index) in keyData.slice(0, 20)" :key="item.key">
           <div class="rank-number" :class="{ 'top-3': index < 3 }">
             <span v-if="index === 0">🥇</span>
@@ -201,12 +202,17 @@ const totalCount = computed(() => keyData.value.reduce((sum, k) => sum + k.count
           <div class="progress-bar">
             <div 
               class="progress-fill"
-              :style="{ width: `${item.percentage}%` }">
+              :style="{ width: `${Math.min(item.percentage, 100)}%` }">
             </div>
           </div>
           <div class="count-value">{{ formatNumber(item.count) }}</div>
           <div class="percent-value">{{ item.percentage }}%</div>
         </div>
+      </div>
+      
+      <div class="empty-state small" v-else-if="!loading && keyData.length === 0">
+        <div class="empty-text">暂无按键数据</div>
+        <div class="empty-hint">开始打字即可查看排行</div>
       </div>
       
       <div class="empty-state small" v-else>
@@ -395,6 +401,12 @@ const totalCount = computed(() => keyData.value.reduce((sum, k) => sum + k.count
 
 .empty-text {
   font-size: 14px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
 }
 
 @media (max-width: 1200px) {

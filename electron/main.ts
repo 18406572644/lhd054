@@ -104,7 +104,9 @@ app.whenReady().then(() => {
   registerIpcHandlers()
   createWindow()
   createTray()
-  startKeyboardListener()
+  if (mainWindow) {
+    startKeyboardListener(mainWindow)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

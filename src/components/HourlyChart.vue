@@ -164,10 +164,15 @@ const peakHour = computed(() => {
     
     <div class="chart-container" v-if="!loading">
       <v-chart :option="chartOption" autoresize />
+      <div class="empty-overlay" v-if="totalToday === 0">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">今日暂无按键数据</div>
+        <div class="empty-hint">开始打字即可查看24小时分布</div>
+      </div>
     </div>
     
     <div class="empty-state" v-else>
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon">⏳</div>
       <div class="empty-text">加载中...</div>
     </div>
   </div>
@@ -237,11 +242,28 @@ const peakHour = computed(() => {
 .chart-container {
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
 .chart-container :deep(.echarts) {
   width: 100%;
   height: 100%;
+}
+
+.empty-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 23, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  color: var(--text-tertiary);
 }
 
 .empty-state {
@@ -261,5 +283,11 @@ const peakHour = computed(() => {
 
 .empty-text {
   font-size: 14px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
 }
 </style>

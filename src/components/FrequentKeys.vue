@@ -57,7 +57,7 @@ const maxCount = computed(() => {
       <span class="card-subtitle">Top 30 按键频次</span>
     </div>
     
-    <div class="keys-container" v-if="!loading">
+    <div class="keys-container" v-if="!loading && frequentKeys.length > 0">
       <div class="key-list">
         <div
           v-for="(item, index) in frequentKeys"
@@ -78,8 +78,14 @@ const maxCount = computed(() => {
       </div>
     </div>
     
-    <div class="empty-state" v-else>
+    <div class="empty-state" v-else-if="!loading && frequentKeys.length === 0">
       <div class="empty-icon">⌨️</div>
+      <div class="empty-text">暂无按键数据</div>
+      <div class="empty-hint">开始打字即可统计按键记录</div>
+    </div>
+    
+    <div class="empty-state" v-else>
+      <div class="empty-icon">⏳</div>
       <div class="empty-text">加载中...</div>
     </div>
   </div>
@@ -239,5 +245,11 @@ const maxCount = computed(() => {
 
 .empty-text {
   font-size: 14px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
 }
 </style>

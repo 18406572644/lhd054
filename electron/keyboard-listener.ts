@@ -20,74 +20,81 @@ const keyCodeMap: Record<number, string> = {
   219: '[', 220: '\\', 221: ']', 222: "'"
 }
 
+function normalizeKeyName(key: string, keyCode: number): string {
+  if (keyCodeMap[keyCode]) {
+    return keyCodeMap[keyCode]
+  }
+  if (key.length === 1) {
+    return key.toUpperCase()
+  }
+  const specialKeys: Record<string, string> = {
+    ' ': 'Space',
+    'Escape': 'Esc',
+    'Delete': 'Delete',
+    'Insert': 'Insert',
+    'Home': 'Home',
+    'End': 'End',
+    'PageUp': 'PageUp',
+    'PageDown': 'PageDown',
+    'ArrowUp': '↑',
+    'ArrowDown': '↓',
+    'ArrowLeft': '←',
+    'ArrowRight': '→',
+    'Backspace': 'Backspace',
+    'Tab': 'Tab',
+    'Enter': 'Enter',
+    'Shift': 'Shift',
+    'Control': 'Ctrl',
+    'Alt': 'Alt',
+    'Meta': 'Win',
+    'CapsLock': 'CapsLock',
+    'NumLock': 'NumLock',
+    'ScrollLock': 'ScrollLock',
+    'Pause': 'Pause',
+    'ContextMenu': 'Menu'
+  }
+  return specialKeys[key] || key
+}
+
 export function getKeyName(keyCode: number): string {
   return keyCodeMap[keyCode] || `Key${keyCode}`
 }
 
 let isListening = false
-let simulationInterval: number | null = null
-let lastSimulatedKeys: string[] = ['A', 'S', 'D', 'W', 'Space', 'Enter', 'Backspace', 'Shift', 'Ctrl', 'E', 'R', 'F', 'J', 'K', 'L', 'N', 'M', 'I', 'O', 'P', '1', '2', '3', '4', '5']
 
-export function startKeyboardListener() {
+export function startKeyboardListener(mainWindow: BrowserWindow) {
   if (isListening) return
   
-  const windows = BrowserWindow.getAllWindows()
-  windows.forEach(win => {
-    win.webContents.on('before-input-event', (_, input) => {
-      if (input.type === 'keyDown') {
-        const keyCode = input.key.charCodeAt(0) || 0
-        const keyName = input.key.length === 1 ? input.key.toUpperCase() : input.key
-        
-        recordKeyPress(keyCode, keyName)
-        
-        const stats = getTodayStats()
-        BrowserWindow.getAllWindows().forEach(w => {
-          if (w.webContents && !w.webContents.isDestroyed()) {
-            w.webContents.send('key-press', keyName, stats.total)
-          }
-        })
-      }
-    })
-  })
-  
-  simulationInterval = setInterval(() => {
-    const randomKey = lastSimulatedKeys[Math.floor(Math.random() * lastSimulatedKeys.length)]
-    const keyCode = randomKey.charCodeAt(0) || 0
+  function handleKeyPress(input: Electron.Input) {
+    if (input.type !== 'keyDown') return
     
-    recordKeyPress(keyCode, randomKey)
+    let keyCode: number
+    if (input.key && input.key.length === 1) {
+      keyCode = input.key.toUpperCase().charCodeAt(0)
+    } else {
+      keyCode = input.code ? input.code.charCodeAt(0) || 0 : input.key?.charCodeAt(0) || 0
+    }
+    
+    const keyName = normalizeKeyName(input.key || '', keyCode)
+    recordKeyPress(keyCode, keyName)
     
     const stats = getTodayStats()
     BrowserWindow.getAllWindows().forEach(w => {
       if (w.webContents && !w.webContents.isDestroyed()) {
-        w.webContents.send('key-press', randomKey, stats.total)
+        w.webContents.send('key-press', keyName, stats.total)
       }
     })
-  }, 3000) as unknown as number
+  }
+  
+  mainWindow.webContents.on('before-input-event', (_, input) => {
+    handleKeyPress(input)
+  })
   
   isListening = true
-  console.log('Keyboard listener started with simulation fallback')
+  console.log('Keyboard listener started')
 }
 
 export function stopKeyboardListener() {
-  if (simulationInterval) {
-    clearInterval(simulationInterval)
-    simulationInterval = null
-  }
-  
   globalShortcut.unregisterAll()
   isListening = false
 }
-
-ipcMain.on('simulate-keypress', () => {
-  const randomKey = lastSimulatedKeys[Math.floor(Math.random() * lastSimulatedKeys.length)]
-  const keyCode = randomKey.charCodeAt(0) || 0
-  
-  recordKeyPress(keyCode, randomKey)
-  
-  const stats = getTodayStats()
-  BrowserWindow.getAllWindows().forEach(w => {
-    if (w.webContents && !w.webContents.isDestroyed()) {
-      w.webContents.send('key-press', randomKey, stats.total)
-    }
-  })
-})

@@ -89,16 +89,18 @@ export function getKeyFrequency(limit: number = 20): Array<{ key: string; count:
   const total = totalResult?.total || 1
   
   const results = db.prepare(`
-    SELECT key_name as key, SUM(count) as count
+    SELECT 
+      MAX(key_name) as key, 
+      SUM(count) as count
     FROM key_stats
-    GROUP BY key_code, key_name
+    GROUP BY key_code
     ORDER BY count DESC
     LIMIT ?
   `).all(limit) as Array<{ key: string; count: number }>
   
   return results.map(r => ({
     ...r,
-    percentage: Math.round((r.count / total) * 10000) / 100
+    percentage: total > 0 ? Math.round((r.count / total) * 10000) / 100 : 0
   }))
 }
 
