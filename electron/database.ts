@@ -154,6 +154,100 @@ export function getHourlyStats(date: string): Array<{ hour: number; count: numbe
   return fullResults
 }
 
+export interface DayMultiDimData {
+  date: string
+  totalCount: number
+  hourlyData: Array<{ hour: number; count: number }>
+  peakHour: number
+  letterCount: number
+  letterRatio: number
+  modifierCount: number
+  modifierRatio: number
+  backspaceCount: number
+  backspaceRatio: number
+}
+
+const LETTER_KEY_CODES = Array.from({ length: 26 }, (_, i) => 65 + i)
+const MODIFIER_KEY_CODES = [16, 17, 18, 91, 92]
+const BACKSPACE_KEY_CODE = 8
+
+export function getMultiDimDailyStats(dates: string[]): DayMultiDimData[] {
+  const db = getDb()
+  
+  return dates.map(date => {
+    const hourlyResults = db.prepare(`
+      SELECT hour, SUM(count) as count
+      FROM key_stats
+      WHERE date = ?
+      GROUP BY hour
+      ORDER BY hour ASC
+    `).all(date) as Array<{ hour: number; count: number }>
+    
+    const hourlyMap = new Map(hourlyResults.map(r => [r.hour, r.count]))
+    const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      count: hourlyMap.get(i) || 0
+    }))
+    
+    const totalCount = hourlyData.reduce((sum, h) => sum + h.count, 0)
+    
+    let peakHour = 0
+    let maxHourCount = 0
+    hourlyData.forEach(h => {
+      if (h.count > maxHourCount) {
+        maxHourCount = h.count
+        peakHour = h.hour
+      }
+    })
+    
+    const categoryResults = db.prepare(`
+      SELECT key_code, SUM(count) as count
+      FROM key_stats
+      WHERE date = ?
+      GROUP BY key_code
+    `).all(date) as Array<{ key_code: number; count: number }>
+    
+    let letterCount = 0
+    let modifierCount = 0
+    let backspaceCount = 0
+    
+    categoryResults.forEach(r => {
+      if (LETTER_KEY_CODES.includes(r.key_code)) {
+        letterCount += r.count
+      }
+      if (MODIFIER_KEY_CODES.includes(r.key_code)) {
+        modifierCount += r.count
+      }
+      if (r.key_code === BACKSPACE_KEY_CODE) {
+        backspaceCount += r.count
+      }
+    })
+    
+    const safeTotal = totalCount || 1
+    
+    return {
+      date,
+      totalCount,
+      hourlyData,
+      peakHour,
+      letterCount,
+      letterRatio: Math.round((letterCount / safeTotal) * 10000) / 100,
+      modifierCount,
+      modifierRatio: Math.round((modifierCount / safeTotal) * 10000) / 100,
+      backspaceCount,
+      backspaceRatio: Math.round((backspaceCount / safeTotal) * 10000) / 100
+    }
+  })
+}
+
+export function getAvailableDates(): string[] {
+  const db = getDb()
+  const results = db.prepare(`
+    SELECT DISTINCT date FROM daily_totals ORDER BY date DESC
+  `).all() as Array<{ date: string }>
+  return results.map(r => r.date)
+}
+
 export function clearData(): boolean {
   const db = getDb()
   const transaction = db.transaction(() => {
