@@ -41,11 +41,17 @@ const keyCodeMap: Record<number, string> = {
   219: '[', 220: '\\', 221: ']', 222: "'"
 }
 
+const NUMPAD_ENTER_UIOHOOK = 88
+
 function uiohookKeycodeToVk(uiohookKeycode: number): number {
   return UIHOOK_TO_VK[uiohookKeycode] || uiohookKeycode
 }
 
-function normalizeKeyName(vkCode: number): string {
+function normalizeKeyName(vkCode: number, uiohookKeycode?: number): string {
+  if (uiohookKeycode === NUMPAD_ENTER_UIOHOOK) {
+    return 'NumEnter'
+  }
+
   if (keyCodeMap[vkCode]) {
     return keyCodeMap[vkCode]
   }
@@ -93,7 +99,7 @@ function recordKeyTimestamp() {
 function handleGlobalKeyPress(event: { keycode: number; altKey: boolean; ctrlKey: boolean; shiftKey: boolean; metaKey: boolean }) {
   try {
     const vkCode = uiohookKeycodeToVk(event.keycode)
-    const keyName = normalizeKeyName(vkCode)
+    const keyName = normalizeKeyName(vkCode, event.keycode)
 
     const activeWindow = getCurrentActiveWindow()
     const appName = activeWindow.appName || '未知应用'
