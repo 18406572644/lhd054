@@ -16,6 +16,7 @@
     "better-sqlite3": "^11.0.0",
     "dayjs": "^1.11.11",
     "echarts": "^5.5.0",
+    "electron-updater": "^6.8.9",
     "exceljs": "^4.4.0",
     "vue": "^3.4.27",
     "vue-echarts": "^7.0.3"
@@ -56,9 +57,22 @@
     },
     "nsis": {
       "oneClick": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "differentialPackage": true,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+      "createStartMenuShortcut": true,
+      "shortcutName": "KeyboardStats",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://localhost:3000/releases"
+      }
+    ]
   }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { IconMinus, IconFullscreen, IconFullscreenExit, IconClose } from '@arco-design/web-vue/es/icon'
+import { IconMinus, IconFullscreen, IconFullscreenExit, IconClose, IconCheck, IconUpload, IconInfoCircle } from '@arco-design/web-vue/es/icon'
 import dayjs from 'dayjs'
 
 const props = defineProps<{
@@ -10,6 +10,10 @@ const props = defineProps<{
 
 const isMaximized = ref(false)
 const currentTime = ref('')
+const appVersion = ref('')
+const updateStatus = ref<'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'>('idle')
+const downloadProgress = ref(0)
+const updateInfo = ref<any>(null)
 
 let timeInterval: number | null = null
 
@@ -17,13 +21,73 @@ onMounted(() => {
   updateTime()
   timeInterval = window.setInterval(updateTime, 1000)
   checkMaximized()
+  loadAppVersion()
+  setupUpdaterListener()
 })
+
+let removeUpdaterListener: (() => void) | null = null
 
 onUnmounted(() => {
   if (timeInterval) {
     clearInterval(timeInterval)
   }
+  if (removeUpdaterListener) {
+    removeUpdaterListener()
+  }
 })
+
+async function loadAppVersion() {
+  if (window.electronAPI?.getAppVersion) {
+    appVersion.value = await window.electronAPI.getAppVersion()
+  }
+}
+
+function setupUpdaterListener() {
+  if (window.electronAPI?.onUpdaterMessage) {
+    removeUpdaterListener = window.electronAPI.onUpdaterMessage((message) => {
+      switch (message.status) {
+        case 'checking':
+          updateStatus.value = 'checking'
+          break
+        case 'update-available':
+          updateStatus.value = 'available'
+          updateInfo.value = message.data
+          break
+        case 'update-not-available':
+          updateStatus.value = 'not-available'
+          break
+        case 'downloading':
+          updateStatus.value = 'downloading'
+          downloadProgress.value = message.data?.percent || 0
+          break
+        case 'update-downloaded':
+          updateStatus.value = 'downloaded'
+          updateInfo.value = message.data
+          break
+        case 'error':
+          updateStatus.value = 'error'
+          break
+      }
+    })
+  }
+}
+
+async function handleUpdateClick() {
+  if (updateStatus.value === 'available') {
+    if (window.electronAPI?.downloadUpdate) {
+      await window.electronAPI.downloadUpdate()
+    }
+  } else if (updateStatus.value === 'downloaded') {
+    if (window.electronAPI?.installUpdate) {
+      await window.electronAPI.installUpdate()
+    }
+  } else if (updateStatus.value === 'idle' || updateStatus.value === 'error' || updateStatus.value === 'not-available') {
+    updateStatus.value = 'checking'
+    if (window.electronAPI?.checkForUpdates) {
+      await window.electronAPI.checkForUpdates()
+    }
+  }
+}
 
 function updateTime() {
   currentTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
@@ -78,6 +142,31 @@ function formatNumber(num: number): string {
     </div>
     
     <div class="title-bar-right">
+      <div class="version-info" :class="{ clickable: updateStatus !== 'downloading' }" @click="handleUpdateClick">
+        <span class="version-label">v{{ appVersion }}</span>
+        <span v-if="updateStatus === 'checking'" class="update-badge checking">
+          <icon-info-circle />
+          检查中...
+        </span>
+        <span v-else-if="updateStatus === 'available'" class="update-badge available" title="点击下载更新">
+          <icon-upload />
+          有新版本
+        </span>
+        <span v-else-if="updateStatus === 'downloading'" class="update-badge downloading">
+          下载中 {{ downloadProgress.toFixed(0) }}%
+        </span>
+        <span v-else-if="updateStatus === 'downloaded'" class="update-badge downloaded" title="点击立即安装重启">
+          <icon-check />
+          立即更新
+        </span>
+        <span v-else-if="updateStatus === 'not-available'" class="update-badge not-available">
+          <icon-check />
+          已是最新
+        </span>
+        <span v-else-if="updateStatus === 'error'" class="update-badge error" title="点击重新检查">
+          检查失败
+        </span>
+      </div>
       <div class="window-controls">
         <button class="window-btn minimize" @click="handleMinimize" title="最小化">
           <icon-minus />
@@ -229,5 +318,80 @@ function formatNumber(num: number): string {
 .window-btn.close:hover {
   background: var(--danger);
   color: #fff;
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  -webkit-app-region: no-drag;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  transition: all 0.2s;
+}
+
+.version-info.clickable {
+  cursor: pointer;
+}
+
+.version-info.clickable:hover {
+  color: var(--text-secondary);
+}
+
+.version-label {
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.update-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.update-badge.checking {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.update-badge.available {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.update-badge.downloading {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.update-badge.downloaded {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.update-badge.not-available {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+}
+
+.update-badge.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 </style>

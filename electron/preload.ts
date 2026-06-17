@@ -18,24 +18,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   exportExcel: (startDate: string, endDate: string) => 
     ipcRenderer.invoke('export-excel', startDate, endDate),
-  clearData: () => ipcRenderer.invoke('clear-data')
-})
+  clearData: () => ipcRenderer.invoke('clear-data'),
 
-declare global {
-  interface Window {
-    electronAPI: {
-      minimize: () => void
-      maximize: () => void
-      close: () => void
-      quit: () => void
-      isMaximized: () => Promise<boolean>
-      getTodayStats: () => Promise<{ total: number; date: string }>
-      getKeyFrequency: (limit: number) => Promise<Array<{ key: string; count: number; percentage: number }>>
-      getDailyStats: (days: number) => Promise<Array<{ date: string; count: number }>>
-      getHourlyStats: (date: string) => Promise<Array<{ hour: number; count: number }>>
-      onKeyPress: (callback: (key: string, count: number) => void) => () => void
-      exportExcel: (startDate: string, endDate: string) => Promise<{ success: boolean; path?: string; error?: string }>
-      clearData: () => Promise<boolean>
-    }
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdaterMessage: (callback: (message: { status: string; data?: any }) => void) => {
+    const listener = (_: any, message: { status: string; data?: any }) => callback(message)
+    ipcRenderer.on('updater-message', listener)
+    return () => ipcRenderer.removeListener('updater-message', listener)
   }
-}
+})

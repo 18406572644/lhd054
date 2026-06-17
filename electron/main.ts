@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { initDatabase } from './database'
 import { startKeyboardListener, stopKeyboardListener } from './keyboard-listener'
 import { registerIpcHandlers } from './ipc-handlers'
+import { initAutoUpdater, registerUpdaterIpcHandlers } from './auto-updater'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -102,10 +103,12 @@ function createTray() {
 app.whenReady().then(() => {
   initDatabase()
   registerIpcHandlers()
+  registerUpdaterIpcHandlers()
   createWindow()
   createTray()
   if (mainWindow) {
     startKeyboardListener(mainWindow)
+    initAutoUpdater(mainWindow)
   }
 
   app.on('activate', () => {
