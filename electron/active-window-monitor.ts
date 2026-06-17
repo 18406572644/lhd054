@@ -184,90 +184,129 @@ function getAppNameFromExe(exeName: string, windowTitle: string): string {
 async function getActiveWindowWindows(): Promise<ActiveWindowInfo> {
   try {
     const psScript = `
-      Add-Type @"
-      using System;
-      using System.Runtime.InteropServices;
-      using System.Text;
-      public class Win32 {
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetForegroundWindow();
-        
-        [DllImport("user32.dll")]
-        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-        
-        [DllImport("user32.dll")]
-        public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-      }
+$ErrorActionPreference = 'SilentlyContinue'
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public class Win32 {
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    [DllImport("user32.dll")] public static extern int GetWindowTextLengthW(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+    [DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+    [DllImport("kernel32.dll", SetLastError = true)] public static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
+    [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr hObject);
+}
 "@
-      
-      $hwnd = [Win32]::GetForegroundWindow()
-      if ($hwnd -eq [IntPtr]::Zero) { exit }
-      
-      $processId = 0
-      [Win32]::GetWindowThreadProcessId($hwnd, [ref]$processId) | Out-Null
-      
-      $sb = New-Object System.Text.StringBuilder 256
-      [Win32]::GetWindowText($hwnd, $sb, 256) | Out-Null
-      $title = $sb.ToString()
-      
-      $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-      if ($process) {
-        $exeName = $process.ProcessName + ".exe"
-        Write-Output "$exeName|$title"
-      }
-    `
 
-    const { stdout } = await execAsync(`powershell -NoProfile -Command "${psScript.replace(/"/g, '""')}"`, {
-      timeout: 1500,
-      windowsHide: true
-    })
+$hwnd = [Win32]::GetForegroundWindow()
+if ($hwnd -eq [IntPtr]::Zero) {
+    Write-Output "|||"; exit
+}
+
+$processId = 0
+[Win32]::GetWindowThreadProcessId($hwnd, [ref]$processId) | Out-Null
+
+$length = [Win32]::GetWindowTextLengthW($hwnd)
+$sb = New-Object System.Text.StringBuilder ($length + 2)
+[Win32]::GetWindowTextW($hwnd, $sb, $sb.Capacity) | Out-Null
+$title = $sb.ToString()
+
+$exeName = $null
+$hProcess = [Win32]::OpenProcess(0x1000, $false, $processId)
+if ($hProcess -ne [IntPtr]::Zero) {
+    try {
+        $size = 1024
+        $exeSb = New-Object System.Text.StringBuilder $size
+        if ([Win32]::QueryFullProcessImageNameW($hProcess, 0, $exeSb, [ref]$size)) {
+            $fullPath = $exeSb.ToString()
+            $exeName = [System.IO.Path]::GetFileName($fullPath)
+        }
+    } finally {
+        [Win32]::CloseHandle($hProcess) | Out-Null
+    }
+}
+
+if (-not $exeName -or $exeName -eq '') {
+    $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+    if ($process -and $process.ProcessName) {
+        $exeName = $process.ProcessName + '.exe'
+    }
+}
+
+if (-not $exeName -or $exeName -eq '') {
+    $exeName = 'Unknown'
+}
+
+Write-Output "$exeName|$title"
+`
+
+    const { stdout, stderr } = await execAsync(
+      `powershell -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand ` +
+      Buffer.from(psScript, 'utf16le').toString('base64'),
+      { timeout: 2000, windowsHide: true }
+    )
+
+    if (stderr && stderr.trim()) {
+      console.debug('[WindowMonitor] PS stderr:', stderr.trim())
+    }
 
     const output = stdout.trim()
-    if (output && output.includes('|')) {
+    if (output && output !== '|||' && output.includes('|')) {
       const [processName, ...titleParts] = output.split('|')
       const windowTitle = titleParts.join('|').trim()
       const cleanExe = processName.trim()
-      
-      return {
-        processName: cleanExe,
-        windowTitle,
-        appName: getAppNameFromExe(cleanExe, windowTitle)
+
+      if (cleanExe && cleanExe !== 'Unknown') {
+        const appName = getAppNameFromExe(cleanExe, windowTitle)
+        return {
+          processName: cleanExe,
+          windowTitle,
+          appName
+        }
       }
     }
-  } catch {
+  } catch (e) {
+    console.debug('[WindowMonitor] Primary method failed:', (e as Error).message)
   }
 
-  return currentActiveWindow
+  return getActiveWindowFallback()
 }
 
 async function getActiveWindowFallback(): Promise<ActiveWindowInfo> {
   try {
     const { stdout } = await execAsync(
-      'powershell -NoProfile -Command "(Get-Process | Where-Object { $_.MainWindowTitle -ne \'\' } | Select-Object -First 1 | ForEach-Object { $_.ProcessName + \'.exe|\' + $_.MainWindowTitle })"',
+      'powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "Add-Type -TypeDefinition @\'public class Win32 { [DllImport(\\\"user32.dll\\\")] public static extern IntPtr GetForegroundWindow(); [DllImport(\\\"user32.dll\\\")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId); }\'@; $hwnd = [Win32]::GetForegroundWindow(); $pid = 0; [Win32]::GetWindowThreadProcessId($hwnd, [ref]$pid); $p = Get-Process -Id $pid -ErrorAction SilentlyContinue; if ($p) { Write-Output \"$($p.ProcessName).exe|$($p.MainWindowTitle)\" }"',
       { timeout: 1500, windowsHide: true }
     )
-    
+
     const output = stdout.trim()
     if (output && output.includes('|')) {
       const [processName, ...titleParts] = output.split('|')
       const windowTitle = titleParts.join('|').trim()
       const cleanExe = processName.trim()
-      
-      return {
-        processName: cleanExe,
-        windowTitle,
-        appName: getAppNameFromExe(cleanExe, windowTitle)
+
+      if (cleanExe) {
+        const appName = getAppNameFromExe(cleanExe, windowTitle)
+        console.debug(`[WindowMonitor] Fallback got: exe=${cleanExe}, title=${windowTitle}, app=${appName}`)
+        return {
+          processName: cleanExe,
+          windowTitle,
+          appName
+        }
       }
     }
-  } catch {
+  } catch (e) {
+    console.debug('[WindowMonitor] Fallback failed:', (e as Error).message)
   }
-  
+
   return currentActiveWindow
 }
 
-async function pollActiveWindow() {
+async function pollActiveWindow(forceRefresh = false) {
   let info: ActiveWindowInfo
-  
+
   if (process.platform === 'win32') {
     info = await getActiveWindowWindows()
     if (info.processName === 'Unknown' || info.appName === '未知应用') {
@@ -280,9 +319,12 @@ async function pollActiveWindow() {
       appName: `应用(${process.platform})`
     }
   }
-  
+
   if (info.processName !== 'Unknown' || info.windowTitle) {
-    currentActiveWindow = info
+    if (forceRefresh || info.processName !== currentActiveWindow.processName || info.windowTitle !== currentActiveWindow.windowTitle) {
+      currentActiveWindow = info
+      console.debug(`[WindowMonitor] Active window changed: exe=${info.processName}, app=${info.appName}, title=${info.windowTitle.substring(0, 40)}${info.windowTitle.length > 40 ? '...' : ''}`)
+    }
   }
 }
 
@@ -312,4 +354,8 @@ export function stopActiveWindowMonitor() {
 
 export function getCurrentActiveWindow(): ActiveWindowInfo {
   return { ...currentActiveWindow }
+}
+
+export async function forceRefreshActiveWindow(): Promise<void> {
+  await pollActiveWindow(true)
 }

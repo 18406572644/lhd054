@@ -108,7 +108,7 @@ app.whenReady().then(() => {
   registerUpdaterIpcHandlers()
   createWindow()
   createTray()
-  startActiveWindowMonitor(2000)
+  startActiveWindowMonitor(1000)
   if (mainWindow) {
     startKeyboardListener(mainWindow)
     initAutoUpdater(mainWindow)
