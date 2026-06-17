@@ -6,6 +6,7 @@ import { use } from 'echarts/core'
 import { PieChart, PieSeriesOption } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { ComposeOption } from 'echarts/core'
+import KeyboardHeatmap from './KeyboardHeatmap.vue'
 
 use([PieChart, TitleComponent, TooltipComponent, LegendComponent])
 
@@ -17,6 +18,12 @@ const selectedAppFilter = inject<Ref<string>>('selectedAppFilter') as Ref<string
 const keyData = ref<Array<{ key: string; count: number; percentage: number }>>([])
 const loading = ref(true)
 const showLimit = ref(15)
+const activeView = ref<'list' | 'heatmap'>('heatmap')
+
+const viewTabs = [
+  { key: 'heatmap', label: '热力图', icon: '🔥' },
+  { key: 'list', label: '列表视图', icon: '📋' }
+]
 
 onMounted(() => {
   loadData()
@@ -146,79 +153,101 @@ const totalCount = computed(() => keyData.value.reduce((sum: number, k: { key: s
 
 <template>
   <div class="key-frequency">
-    <div class="frequency-content">
-      <div class="chart-section">
+    <div class="view-header">
+      <div class="view-tabs-container">
+        <div
+          v-for="tab in viewTabs"
+          :key="tab.key"
+          class="view-tab-btn"
+          :class="{ active: activeView === tab.key }"
+          @click="activeView = tab.key as any"
+        >
+          <span class="tab-icon">{{ tab.icon }}</span>
+          <span class="tab-label">{{ tab.label }}</span>
+          <div class="tab-underline"></div>
+        </div>
+      </div>
+      <div class="view-controls" v-if="activeView === 'list'">
+        <a-select v-model="showLimit" style="width: 120px" size="small">
+          <a-option :value="10">Top 10</a-option>
+          <a-option :value="15">Top 15</a-option>
+          <a-option :value="20">Top 20</a-option>
+          <a-option :value="30">Top 30</a-option>
+        </a-select>
+      </div>
+    </div>
+
+    <div class="view-content" v-show="activeView === 'heatmap'">
+      <KeyboardHeatmap />
+    </div>
+
+    <div class="view-content list-view" v-show="activeView === 'list'">
+      <div class="frequency-content">
+        <div class="chart-section">
+          <div class="card-header">
+            <h3 class="card-title">
+              <span class="title-icon">🥧</span>
+              按键频率分布
+            </h3>
+          </div>
+          
+          <div class="chart-wrapper" v-if="!loading && keyData.length > 0">
+          <v-chart :option="pieOption" autoresize />
+        </div>
+        
+        <div class="empty-state" v-else-if="!loading && keyData.length === 0">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">暂无按键数据</div>
+          <div class="empty-hint">开始打字即可统计按键频率</div>
+        </div>
+        
+        <div class="empty-state" v-else>
+          <div class="empty-icon">⏳</div>
+          <div class="empty-text">加载中...</div>
+        </div>
+        </div>
+      </div>
+      
+      <div class="ranking-section">
         <div class="card-header">
           <h3 class="card-title">
-            <span class="title-icon">🥧</span>
-            按键频率分布
+            <span class="title-icon">🏆</span>
+            排行榜
           </h3>
-          <div class="header-controls">
-            <a-select v-model="showLimit" style="width: 120px">
-              <a-option :value="10">Top 10</a-option>
-              <a-option :value="15">Top 15</a-option>
-              <a-option :value="20">Top 20</a-option>
-              <a-option :value="30">Top 30</a-option>
-            </a-select>
+          <div class="total-info">
+            <span class="total-label">总计按键</span>
+            <span class="total-value">{{ formatNumber(totalCount) }}</span>
           </div>
         </div>
         
-        <div class="chart-wrapper" v-if="!loading && keyData.length > 0">
-        <v-chart :option="pieOption" autoresize />
-      </div>
-      
-      <div class="empty-state" v-else-if="!loading && keyData.length === 0">
-        <div class="empty-icon">📊</div>
-        <div class="empty-text">暂无按键数据</div>
-        <div class="empty-hint">开始打字即可统计按键频率</div>
-      </div>
-      
-      <div class="empty-state" v-else>
-        <div class="empty-icon">⏳</div>
-        <div class="empty-text">加载中...</div>
-      </div>
-      </div>
-    </div>
-    
-    <div class="ranking-section">
-      <div class="card-header">
-        <h3 class="card-title">
-          <span class="title-icon">🏆</span>
-          排行榜
-        </h3>
-        <div class="total-info">
-          <span class="total-label">总计按键</span>
-          <span class="total-value">{{ formatNumber(totalCount) }}</span>
-        </div>
-      </div>
-      
-      <div class="ranking-list" v-if="!loading && keyData.length > 0">
-        <div class="ranking-item" v-for="(item, index) in keyData.slice(0, 20)" :key="item.key">
-          <div class="rank-number" :class="{ 'top-3': index < 3 }">
-            <span v-if="index === 0">🥇</span>
-            <span v-else-if="index === 1">🥈</span>
-            <span v-else-if="index === 2">🥉</span>
-            <span v-else>{{ index + 1 }}</span>
-          </div>
-          <div class="key-label">{{ item.key }}</div>
-          <div class="progress-bar">
-            <div 
-              class="progress-fill"
-              :style="{ width: `${Math.min(item.percentage, 100)}%` }">
+        <div class="ranking-list" v-if="!loading && keyData.length > 0">
+          <div class="ranking-item" v-for="(item, index) in keyData.slice(0, 20)" :key="item.key">
+            <div class="rank-number" :class="{ 'top-3': index < 3 }">
+              <span v-if="index === 0">🥇</span>
+              <span v-else-if="index === 1">🥈</span>
+              <span v-else-if="index === 2">🥉</span>
+              <span v-else>{{ index + 1 }}</span>
             </div>
+            <div class="key-label">{{ item.key }}</div>
+            <div class="progress-bar">
+              <div 
+                class="progress-fill"
+                :style="{ width: `${Math.min(item.percentage, 100)}%` }">
+              </div>
+            </div>
+            <div class="count-value">{{ formatNumber(item.count) }}</div>
+            <div class="percent-value">{{ item.percentage }}%</div>
           </div>
-          <div class="count-value">{{ formatNumber(item.count) }}</div>
-          <div class="percent-value">{{ item.percentage }}%</div>
         </div>
-      </div>
-      
-      <div class="empty-state small" v-else-if="!loading && keyData.length === 0">
-        <div class="empty-text">暂无按键数据</div>
-        <div class="empty-hint">开始打字即可查看排行</div>
-      </div>
-      
-      <div class="empty-state small" v-else>
-        <div class="empty-text">加载中...</div>
+        
+        <div class="empty-state small" v-else-if="!loading && keyData.length === 0">
+          <div class="empty-text">暂无按键数据</div>
+          <div class="empty-hint">开始打字即可查看排行</div>
+        </div>
+        
+        <div class="empty-state small" v-else>
+          <div class="empty-text">加载中...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -227,8 +256,88 @@ const totalCount = computed(() => keyData.value.reduce((sum: number, k: { key: s
 <style scoped>
 .key-frequency {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 20px;
   height: 100%;
+  min-height: 0;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.view-tabs-container {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.view-tab-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.view-tab-btn:hover {
+  background: rgba(0, 206, 209, 0.06);
+  color: var(--text-primary);
+}
+
+.view-tab-btn.active {
+  background: linear-gradient(135deg, rgba(0, 206, 209, 0.18), rgba(0, 180, 184, 0.12));
+  color: var(--accent-primary);
+  box-shadow: inset 0 0 0 1px rgba(0, 206, 209, 0.3);
+}
+
+.view-tab-btn .tab-icon {
+  font-size: 16px;
+}
+
+.view-tab-btn .tab-label {
+  white-space: nowrap;
+}
+
+.view-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.view-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.list-view {
+  display: flex;
+  gap: 24px;
 }
 
 .frequency-content {
