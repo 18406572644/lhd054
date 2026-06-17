@@ -12,6 +12,7 @@ const clearing = ref(false)
 
 async function handleExport() {
   if (!window.electronAPI) return
+  const electronAPI = window.electronAPI
   
   if (!dateRange.value || dateRange.value.length < 2) {
     Message.warning('请选择导出日期范围')
@@ -20,7 +21,7 @@ async function handleExport() {
   
   exporting.value = true
   try {
-    const result = await window.electronAPI.exportExcel(
+    const result = await electronAPI.exportExcel(
       dateRange.value[0],
       dateRange.value[1]
     )
@@ -50,10 +51,11 @@ function handleClearData() {
     },
     onOk: async () => {
       if (!window.electronAPI) return
+      const electronAPI = window.electronAPI
       
       clearing.value = true
       try {
-        const success = await window.electronAPI.clearData()
+        const success = await electronAPI.clearData()
         if (success) {
           Message.success('数据已清空')
         } else {

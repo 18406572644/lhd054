@@ -207,7 +207,7 @@ async function loadQuickRangeData() {
     }
     selectedDates.value = dates
 
-    if (window.electronAPI && typeof window.electronAPI.getMultiDimDailyStats === 'function') {
+    if (window.electronAPI && typeof (window.electronAPI as any).getMultiDimDailyStats === 'function') {
       const data = await window.electronAPI.getMultiDimDailyStats(dates)
       multiDimData.value = data
     } else {
@@ -232,7 +232,7 @@ async function loadCustomDatesData() {
   loading.value = true
   try {
     const sortedDates = [...selectedDates.value].sort((a, b) => a.localeCompare(b))
-    if (window.electronAPI && typeof window.electronAPI.getMultiDimDailyStats === 'function') {
+    if (window.electronAPI && typeof (window.electronAPI as any).getMultiDimDailyStats === 'function') {
       const data = await window.electronAPI.getMultiDimDailyStats(sortedDates)
       multiDimData.value = data
     } else {
@@ -675,7 +675,7 @@ async function exportReport() {
       ? `${multiDimData.value[0].date}_${multiDimData.value[multiDimData.value.length - 1].date}`
       : dayjs().format('YYYY-MM-DD')
 
-    if (window.electronAPI?.saveReportImage) {
+    if (window.electronAPI && (window.electronAPI as any).saveReportImage) {
       const result = await window.electronAPI.saveReportImage(dataUrl, `键盘对比报告_${dateRange}.png`)
       if (result.success) {
         Message.success('报告已保存至：' + result.path)
@@ -948,7 +948,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
         <div v-else class="custom-controls">
           <div class="calendar-wrap">
             <a-calendar
-              v-model="calendarValue"
+              :value="calendarValue.length > 0 ? new Date(calendarValue[0]) : new Date()"
               :mode="'month'"
               :selectable="true"
               :range-select="false"

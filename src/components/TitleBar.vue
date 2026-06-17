@@ -37,55 +37,52 @@ onUnmounted(() => {
 })
 
 async function loadAppVersion() {
-  if (window.electronAPI?.getAppVersion) {
-    appVersion.value = await window.electronAPI.getAppVersion()
-  }
+  if (!window.electronAPI) return
+  const electronAPI = window.electronAPI
+  appVersion.value = await electronAPI.getAppVersion()
 }
 
 function setupUpdaterListener() {
-  if (window.electronAPI?.onUpdaterMessage) {
-    removeUpdaterListener = window.electronAPI.onUpdaterMessage((message) => {
-      switch (message.status) {
-        case 'checking':
-          updateStatus.value = 'checking'
-          break
-        case 'update-available':
-          updateStatus.value = 'available'
-          updateInfo.value = message.data
-          break
-        case 'update-not-available':
-          updateStatus.value = 'not-available'
-          break
-        case 'downloading':
-          updateStatus.value = 'downloading'
-          downloadProgress.value = message.data?.percent || 0
-          break
-        case 'update-downloaded':
-          updateStatus.value = 'downloaded'
-          updateInfo.value = message.data
-          break
-        case 'error':
-          updateStatus.value = 'error'
-          break
-      }
-    })
-  }
+  if (!window.electronAPI) return
+  const electronAPI = window.electronAPI
+  removeUpdaterListener = electronAPI.onUpdaterMessage((message: { status: string; data?: any }) => {
+    switch (message.status) {
+      case 'checking':
+        updateStatus.value = 'checking'
+        break
+      case 'update-available':
+        updateStatus.value = 'available'
+        updateInfo.value = message.data
+        break
+      case 'update-not-available':
+        updateStatus.value = 'not-available'
+        break
+      case 'downloading':
+        updateStatus.value = 'downloading'
+        downloadProgress.value = message.data?.percent || 0
+        break
+      case 'update-downloaded':
+        updateStatus.value = 'downloaded'
+        updateInfo.value = message.data
+        break
+      case 'error':
+        updateStatus.value = 'error'
+        break
+    }
+  })
 }
 
 async function handleUpdateClick() {
+  if (!window.electronAPI) return
+  const electronAPI = window.electronAPI
+  
   if (updateStatus.value === 'available') {
-    if (window.electronAPI?.downloadUpdate) {
-      await window.electronAPI.downloadUpdate()
-    }
+    await electronAPI.downloadUpdate()
   } else if (updateStatus.value === 'downloaded') {
-    if (window.electronAPI?.installUpdate) {
-      await window.electronAPI.installUpdate()
-    }
+    await electronAPI.installUpdate()
   } else if (updateStatus.value === 'idle' || updateStatus.value === 'error' || updateStatus.value === 'not-available') {
     updateStatus.value = 'checking'
-    if (window.electronAPI?.checkForUpdates) {
-      await window.electronAPI.checkForUpdates()
-    }
+    await electronAPI.checkForUpdates()
   }
 }
 
@@ -94,22 +91,25 @@ function updateTime() {
 }
 
 async function checkMaximized() {
-  if (window.electronAPI?.isMaximized) {
-    isMaximized.value = await window.electronAPI.isMaximized()
-  }
+  if (!window.electronAPI) return
+  const electronAPI = window.electronAPI
+  isMaximized.value = await electronAPI.isMaximized()
 }
 
 function handleMinimize() {
-  window.electronAPI?.minimize()
+  if (!window.electronAPI) return
+  window.electronAPI.minimize()
 }
 
 async function handleMaximize() {
-  window.electronAPI?.maximize()
+  if (!window.electronAPI) return
+  window.electronAPI.maximize()
   await checkMaximized()
 }
 
 function handleClose() {
-  window.electronAPI?.close()
+  if (!window.electronAPI) return
+  window.electronAPI.close()
 }
 
 function formatNumber(num: number): string {

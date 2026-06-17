@@ -14,7 +14,7 @@ onMounted(() => {
   loadTodayStats()
   
   if (window.electronAPI?.onKeyPress) {
-    window.electronAPI.onKeyPress((key, count) => {
+    window.electronAPI.onKeyPress((key: string, count: number) => {
       todayCount.value = count
       lastKey.value = key
       refreshData.value++

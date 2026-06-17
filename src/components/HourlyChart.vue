@@ -129,7 +129,7 @@ const chartOption = computed<ECOption>(() => {
   }
 })
 
-const totalToday = computed(() => hourlyData.value.reduce((sum, d) => sum + d.count, 0))
+const totalToday = computed(() => hourlyData.value.reduce((sum: number, d: { hour: number; count: number }) => sum + d.count, 0))
 const peakHour = computed(() => {
   const max = Math.max(...hourlyData.value.map(d => d.count), 0)
   const peak = hourlyData.value.find(d => d.count === max)

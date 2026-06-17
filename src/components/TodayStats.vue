@@ -26,12 +26,12 @@ async function loadStats() {
   const yesterdayDate = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
   
   const dailyStats = await window.electronAPI.getDailyStats(7)
-  const todayStats = dailyStats.find(d => d.date === todayDate)
-  const yesterdayStats = dailyStats.find(d => d.date === yesterdayDate)
+  const todayStats = dailyStats.find((d: { date: string; count: number }) => d.date === todayDate)
+  const yesterdayStats = dailyStats.find((d: { date: string; count: number }) => d.date === yesterdayDate)
   
-  const weekTotal = dailyStats.reduce((sum, d) => sum + d.count, 0)
+  const weekTotal = dailyStats.reduce((sum: number, d: { date: string; count: number }) => sum + d.count, 0)
   
-  const maxDay = dailyStats.reduce((max, d) => d.count > max.count ? d : max, { date: '', count: 0 })
+  const maxDay = dailyStats.reduce((max: { date: string; count: number }, d: { date: string; count: number }) => d.count > max.count ? d : max, { date: '', count: 0 })
   
   stats.value = {
     today: todayStats?.count || 0,

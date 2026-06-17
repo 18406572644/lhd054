@@ -43,7 +43,7 @@ function formatNumber(num: number): string {
 }
 
 const maxCount = computed(() => {
-  return frequentKeys.value.reduce((max, k) => Math.max(max, k.count), 1)
+  return frequentKeys.value.reduce((max: number, k: { key: string; count: number; percentage: number }) => Math.max(max, k.count), 1)
 })
 </script>
 

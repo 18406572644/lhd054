@@ -139,7 +139,7 @@ function formatNumber(num: number): string {
   return num.toLocaleString('zh-CN')
 }
 
-const totalCount = computed(() => keyData.value.reduce((sum, k) => sum + k.count, 0))
+const totalCount = computed(() => keyData.value.reduce((sum: number, k: { key: string; count: number; percentage: number }) => sum + k.count, 0))
 </script>
 
 <template>
