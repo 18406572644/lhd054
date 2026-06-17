@@ -6,6 +6,14 @@ import { startKeyboardListener, stopKeyboardListener } from './keyboard-listener
 import { registerIpcHandlers } from './ipc-handlers'
 import { initAutoUpdater, registerUpdaterIpcHandlers } from './auto-updater'
 import { startActiveWindowMonitor, stopActiveWindowMonitor } from './active-window-monitor'
+import {
+  createFloatingWindow,
+  destroyFloatingWindow,
+  showFloatingWindow,
+  hideFloatingWindow,
+  toggleFloatingWindow,
+  registerFloatingIpcHandlers
+} from './floating-window'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -65,6 +73,21 @@ function createTray() {
       }
     },
     {
+      label: '悬浮小窗',
+      type: 'checkbox',
+      checked: false,
+      click: (menuItem) => {
+        if (menuItem.checked) {
+          if (mainWindow) {
+            createFloatingWindow(mainWindow)
+          }
+          showFloatingWindow()
+        } else {
+          hideFloatingWindow()
+        }
+      }
+    },
+    {
       type: 'separator'
     },
     {
@@ -86,6 +109,7 @@ function createTray() {
         isQuitting = true
         stopKeyboardListener()
         stopActiveWindowMonitor()
+        destroyFloatingWindow()
         app.quit()
       }
     }
@@ -106,6 +130,7 @@ app.whenReady().then(() => {
   initDatabase()
   registerIpcHandlers()
   registerUpdaterIpcHandlers()
+  registerFloatingIpcHandlers()
   createWindow()
   createTray()
   startActiveWindowMonitor(1000)

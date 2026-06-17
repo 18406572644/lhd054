@@ -45,6 +45,25 @@ declare global {
       downloadUpdate: () => Promise<{ success: boolean; error?: string }>
       installUpdate: () => Promise<{ success: boolean }>
       onUpdaterMessage: (callback: (message: { status: string; data?: any }) => void) => () => void
+
+      floatingShowMain: () => Promise<void>
+      floatingContextMenu: () => Promise<void>
+      floatingGetConfig: () => Promise<{
+        style: 'bar' | 'ring' | 'panel'
+        opacity: number
+        scale: number
+        position: { x: number; y: number }
+      }>
+      floatingSetStyle: (style: 'bar' | 'ring' | 'panel') => Promise<void>
+      floatingSetOpacity: (opacity: number) => Promise<void>
+      floatingSetScale: (scale: number) => Promise<void>
+      floatingDragStart: (offsetX: number, offsetY: number) => void
+      floatingDragMove: (screenX: number, screenY: number) => void
+      floatingDragEnd: () => void
+      onFloatingStats: (callback: (data: { total: number; speed: number; appName: string }) => void) => () => void
+      onFloatingStyleChanged: (callback: (style: string) => void) => () => void
+      onFloatingOpacityChanged: (callback: (opacity: number) => void) => () => void
+      onFloatingScaleChanged: (callback: (scale: number) => void) => () => void
     }
   }
 }

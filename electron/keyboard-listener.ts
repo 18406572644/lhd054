@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron'
 import { uIOhook } from 'uiohook-napi'
 import { recordKeyPress, getTodayStats } from './database'
 import { getCurrentActiveWindow, forceRefreshActiveWindow } from './active-window-monitor'
+import { sendFloatingStats } from './floating-window'
 
 const UIHOOK_TO_VK: Record<number, number> = {
   1: 27, 2: 49, 3: 50, 4: 51, 5: 52, 6: 53, 7: 54, 8: 55, 9: 56, 10: 57,
@@ -67,6 +68,28 @@ export function getKeyName(keyCode: number): string {
 let isListening = false
 let mainWindowRef: BrowserWindow | null = null
 
+const keyTimestamps: number[] = []
+const SPEED_WINDOW_MS = 60000
+
+function calculateKpm(): number {
+  const now = Date.now()
+  const windowStart = now - SPEED_WINDOW_MS
+  
+  while (keyTimestamps.length > 0 && keyTimestamps[0] < windowStart) {
+    keyTimestamps.shift()
+  }
+  
+  return keyTimestamps.length
+}
+
+function recordKeyTimestamp() {
+  keyTimestamps.push(Date.now())
+  
+  if (keyTimestamps.length > 5000) {
+    keyTimestamps.shift()
+  }
+}
+
 function handleGlobalKeyPress(event: { keycode: number; altKey: boolean; ctrlKey: boolean; shiftKey: boolean; metaKey: boolean }) {
   try {
     const vkCode = uiohookKeycodeToVk(event.keycode)
@@ -78,12 +101,21 @@ function handleGlobalKeyPress(event: { keycode: number; altKey: boolean; ctrlKey
     console.log(`[KeyPress] key=${keyName} (vk=${vkCode}, uiohook=${event.keycode}) app=${appName} window=${activeWindow.windowTitle}`)
 
     recordKeyPress(vkCode, keyName, appName)
+    recordKeyTimestamp()
 
     const stats = getTodayStats()
+    const speed = calculateKpm()
+
     BrowserWindow.getAllWindows().forEach(w => {
       if (w.webContents && !w.webContents.isDestroyed()) {
         w.webContents.send('key-press', keyName, stats.total, appName)
       }
+    })
+
+    sendFloatingStats({
+      total: stats.total,
+      speed,
+      appName
     })
 
     setImmediate(() => {

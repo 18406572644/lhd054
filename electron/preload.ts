@@ -37,5 +37,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_: any, message: { status: string; data?: any }) => callback(message)
     ipcRenderer.on('updater-message', listener)
     return () => ipcRenderer.removeListener('updater-message', listener)
+  },
+
+  floatingShowMain: () => ipcRenderer.invoke('floating-show-main'),
+  floatingContextMenu: () => ipcRenderer.invoke('floating-context-menu'),
+  floatingGetConfig: () => ipcRenderer.invoke('floating-get-config'),
+  floatingSetStyle: (style: 'bar' | 'ring' | 'panel') => ipcRenderer.invoke('floating-set-style', style),
+  floatingSetOpacity: (opacity: number) => ipcRenderer.invoke('floating-set-opacity', opacity),
+  floatingSetScale: (scale: number) => ipcRenderer.invoke('floating-set-scale', scale),
+  floatingDragStart: (offsetX: number, offsetY: number) => ipcRenderer.send('floating-drag-start', offsetX, offsetY),
+  floatingDragMove: (screenX: number, screenY: number) => ipcRenderer.send('floating-drag-move', screenX, screenY),
+  floatingDragEnd: () => ipcRenderer.send('floating-drag-end'),
+
+  onFloatingStats: (callback: (data: { total: number; speed: number; appName: string }) => void) => {
+    const listener = (_: any, data: { total: number; speed: number; appName: string }) => callback(data)
+    ipcRenderer.on('floating-stats', listener)
+    return () => ipcRenderer.removeListener('floating-stats', listener)
+  },
+
+  onFloatingStyleChanged: (callback: (style: string) => void) => {
+    const listener = (_: any, style: string) => callback(style)
+    ipcRenderer.on('floating-style-changed', listener)
+    return () => ipcRenderer.removeListener('floating-style-changed', listener)
+  },
+
+  onFloatingOpacityChanged: (callback: (opacity: number) => void) => {
+    const listener = (_: any, opacity: number) => callback(opacity)
+    ipcRenderer.on('floating-opacity-changed', listener)
+    return () => ipcRenderer.removeListener('floating-opacity-changed', listener)
+  },
+
+  onFloatingScaleChanged: (callback: (scale: number) => void) => {
+    const listener = (_: any, scale: number) => callback(scale)
+    ipcRenderer.on('floating-scale-changed', listener)
+    return () => ipcRenderer.removeListener('floating-scale-changed', listener)
   }
 })

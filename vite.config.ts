@@ -45,6 +45,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        floating: resolve(__dirname, 'floating.html')
+      }
+    }
   }
 })
