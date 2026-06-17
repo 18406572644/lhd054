@@ -1,5 +1,6 @@
-import { BrowserWindow, globalShortcut, ipcMain } from 'electron'
+import { BrowserWindow, globalShortcut } from 'electron'
 import { recordKeyPress, getTodayStats } from './database'
+import { getCurrentActiveWindow } from './active-window-monitor'
 
 const keyCodeMap: Record<number, string> = {
   8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'Shift', 17: 'Ctrl', 18: 'Alt',
@@ -76,12 +77,15 @@ export function startKeyboardListener(mainWindow: BrowserWindow) {
     }
     
     const keyName = normalizeKeyName(input.key || '', keyCode)
-    recordKeyPress(keyCode, keyName)
+    const activeWindow = getCurrentActiveWindow()
+    const appName = activeWindow.appName || '未知应用'
+    
+    recordKeyPress(keyCode, keyName, appName)
     
     const stats = getTodayStats()
     BrowserWindow.getAllWindows().forEach(w => {
       if (w.webContents && !w.webContents.isDestroyed()) {
-        w.webContents.send('key-press', keyName, stats.total)
+        w.webContents.send('key-press', keyName, stats.total, appName)
       }
     })
   }

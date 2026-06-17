@@ -42,6 +42,7 @@ type ECOption = ComposeOption<
 >
 
 const refreshTrigger = inject<Ref<number>>('refreshTrigger')
+const selectedAppFilter = inject<Ref<string>>('selectedAppFilter') as Ref<string>
 
 const viewMode = ref<'quick' | 'custom'>('quick')
 const dayRange = ref(7)
@@ -208,7 +209,8 @@ async function loadQuickRangeData() {
     selectedDates.value = dates
 
     if (window.electronAPI && typeof (window.electronAPI as any).getMultiDimDailyStats === 'function') {
-      const data = await window.electronAPI.getMultiDimDailyStats(dates)
+      const appName = selectedAppFilter.value !== 'all' ? selectedAppFilter.value : undefined
+      const data = await window.electronAPI.getMultiDimDailyStats(dates, appName)
       multiDimData.value = data
     } else {
       await nextTick()
@@ -233,7 +235,8 @@ async function loadCustomDatesData() {
   try {
     const sortedDates = [...selectedDates.value].sort((a, b) => a.localeCompare(b))
     if (window.electronAPI && typeof (window.electronAPI as any).getMultiDimDailyStats === 'function') {
-      const data = await window.electronAPI.getMultiDimDailyStats(sortedDates)
+      const appName = selectedAppFilter.value !== 'all' ? selectedAppFilter.value : undefined
+      const data = await window.electronAPI.getMultiDimDailyStats(sortedDates, appName)
       multiDimData.value = data
     } else {
       await nextTick()

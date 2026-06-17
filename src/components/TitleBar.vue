@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 const props = defineProps<{
   todayCount: number
   lastKey: string
+  lastApp?: string
 }>()
 
 const isMaximized = ref(false)
@@ -133,6 +134,10 @@ function formatNumber(num: number): string {
         <div class="status-item" v-if="props.lastKey">
           <span class="status-label">最近按键</span>
           <span class="status-value key" :key="props.lastKey">{{ props.lastKey }}</span>
+        </div>
+        <div class="status-item" v-if="props.lastApp">
+          <span class="status-label">当前应用</span>
+          <span class="status-value app" :key="props.lastApp">{{ props.lastApp }}</span>
         </div>
       </div>
     </div>
@@ -269,6 +274,22 @@ function formatNumber(num: number): string {
   border-radius: 4px;
   text-align: center;
   font-family: 'Consolas', 'Monaco', monospace;
+  animation: count-up 0.2s ease-out;
+}
+
+.status-value.app {
+  display: inline-block;
+  max-width: 140px;
+  padding: 2px 10px;
+  background: rgba(0, 206, 209, 0.1);
+  border: 1px solid rgba(0, 206, 209, 0.3);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   animation: count-up 0.2s ease-out;
 }
 

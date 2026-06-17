@@ -5,6 +5,7 @@ import { initDatabase } from './database'
 import { startKeyboardListener, stopKeyboardListener } from './keyboard-listener'
 import { registerIpcHandlers } from './ipc-handlers'
 import { initAutoUpdater, registerUpdaterIpcHandlers } from './auto-updater'
+import { startActiveWindowMonitor, stopActiveWindowMonitor } from './active-window-monitor'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -84,6 +85,7 @@ function createTray() {
       click: () => {
         isQuitting = true
         stopKeyboardListener()
+        stopActiveWindowMonitor()
         app.quit()
       }
     }
@@ -106,6 +108,7 @@ app.whenReady().then(() => {
   registerUpdaterIpcHandlers()
   createWindow()
   createTray()
+  startActiveWindowMonitor(2000)
   if (mainWindow) {
     startKeyboardListener(mainWindow)
     initAutoUpdater(mainWindow)
@@ -127,6 +130,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   isQuitting = true
   stopKeyboardListener()
+  stopActiveWindowMonitor()
 })
 
 ipcMain.on('window-minimize', () => {
@@ -148,6 +152,7 @@ ipcMain.on('window-close', () => {
 ipcMain.on('window-quit', () => {
   isQuitting = true
   stopKeyboardListener()
+  stopActiveWindowMonitor()
   app.quit()
 })
 

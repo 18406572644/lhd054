@@ -2,6 +2,7 @@
 import { ref, onMounted, inject, watch, computed, Ref } from 'vue'
 
 const refreshTrigger = inject<Ref<number>>('refreshTrigger')
+const selectedAppFilter = inject<Ref<string>>('selectedAppFilter') as Ref<string>
 
 const frequentKeys = ref<Array<{ key: string; count: number; percentage: number }>>([])
 const loading = ref(true)
@@ -20,7 +21,8 @@ async function loadData() {
   if (!window.electronAPI) return
   loading.value = true
   try {
-    const data = await window.electronAPI.getKeyFrequency(30)
+    const appName = selectedAppFilter.value !== 'all' ? selectedAppFilter.value : undefined
+    const data = await window.electronAPI.getKeyFrequency(30, appName)
     frequentKeys.value = data
   } finally {
     loading.value = false

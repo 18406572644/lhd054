@@ -13,6 +13,7 @@ use([BarChart, GridComponent, TooltipComponent])
 type ECOption = ComposeOption<GridComponentOption | TooltipComponentOption | BarSeriesOption>
 
 const refreshTrigger = inject<Ref<number>>('refreshTrigger')
+const selectedAppFilter = inject<Ref<string>>('selectedAppFilter') as Ref<string>
 
 const hourlyData = ref<Array<{ hour: number; count: number }>>([])
 const selectedDate = ref(dayjs().format('YYYY-MM-DD'))
@@ -34,7 +35,8 @@ async function loadData() {
   if (!window.electronAPI) return
   loading.value = true
   try {
-    const data = await window.electronAPI.getHourlyStats(selectedDate.value)
+    const appName = selectedAppFilter.value !== 'all' ? selectedAppFilter.value : undefined
+    const data = await window.electronAPI.getHourlyStats(selectedDate.value, appName)
     hourlyData.value = data
   } finally {
     loading.value = false

@@ -1,31 +1,54 @@
 import { ipcMain, dialog } from 'electron'
-import { getTodayStats, getKeyFrequency, getDailyStats, getHourlyStats, clearData, getMultiDimDailyStats, getAvailableDates } from './database'
+import { 
+  getTodayStats, 
+  getKeyFrequency, 
+  getDailyStats, 
+  getHourlyStats, 
+  clearData, 
+  getMultiDimDailyStats, 
+  getAvailableDates,
+  getAvailableApps,
+  getAppStats,
+  getAppKeyFrequency
+} from './database'
 import { exportToExcel } from './excel-exporter'
 import * as fs from 'fs'
 
 export function registerIpcHandlers() {
-  ipcMain.handle('get-today-stats', () => {
-    return getTodayStats()
+  ipcMain.handle('get-today-stats', (_: any, appName?: string) => {
+    return getTodayStats(appName)
   })
 
-  ipcMain.handle('get-key-frequency', (_: any, limit: number) => {
-    return getKeyFrequency(limit)
+  ipcMain.handle('get-key-frequency', (_: any, limit: number, appName?: string) => {
+    return getKeyFrequency(limit, appName)
   })
 
-  ipcMain.handle('get-daily-stats', (_: any, days: number) => {
-    return getDailyStats(days)
+  ipcMain.handle('get-daily-stats', (_: any, days: number, appName?: string) => {
+    return getDailyStats(days, appName)
   })
 
-  ipcMain.handle('get-hourly-stats', (_: any, date: string) => {
-    return getHourlyStats(date)
+  ipcMain.handle('get-hourly-stats', (_: any, date: string, appName?: string) => {
+    return getHourlyStats(date, appName)
   })
 
-  ipcMain.handle('get-multi-dim-daily-stats', (_: any, dates: string[]) => {
-    return getMultiDimDailyStats(dates)
+  ipcMain.handle('get-multi-dim-daily-stats', (_: any, dates: string[], appName?: string) => {
+    return getMultiDimDailyStats(dates, appName)
   })
 
   ipcMain.handle('get-available-dates', () => {
     return getAvailableDates()
+  })
+
+  ipcMain.handle('get-available-apps', () => {
+    return getAvailableApps()
+  })
+
+  ipcMain.handle('get-app-stats', (_: any, limit: number) => {
+    return getAppStats(limit)
+  })
+
+  ipcMain.handle('get-app-key-frequency', (_: any, appName: string, limit: number) => {
+    return getAppKeyFrequency(appName, limit)
   })
 
   ipcMain.handle('export-excel', async (_: any, startDate: string, endDate: string) => {

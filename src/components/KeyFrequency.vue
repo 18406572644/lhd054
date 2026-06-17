@@ -12,6 +12,7 @@ use([PieChart, TitleComponent, TooltipComponent, LegendComponent])
 type ECOption = ComposeOption<PieSeriesOption>
 
 const refreshTrigger = inject<Ref<number>>('refreshTrigger')
+const selectedAppFilter = inject<Ref<string>>('selectedAppFilter') as Ref<string>
 
 const keyData = ref<Array<{ key: string; count: number; percentage: number }>>([])
 const loading = ref(true)
@@ -33,7 +34,8 @@ async function loadData() {
   if (!window.electronAPI) return
   loading.value = true
   try {
-    const data = await window.electronAPI.getKeyFrequency(showLimit.value)
+    const appName = selectedAppFilter.value !== 'all' ? selectedAppFilter.value : undefined
+    const data = await window.electronAPI.getKeyFrequency(showLimit.value, appName)
     keyData.value = data
   } finally {
     loading.value = false

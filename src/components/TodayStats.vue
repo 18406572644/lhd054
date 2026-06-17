@@ -3,6 +3,7 @@ import { ref, onMounted, inject, watch, Ref } from 'vue'
 import dayjs from 'dayjs'
 
 const refreshTrigger = inject<Ref<number>>('refreshTrigger')
+const selectedAppFilter = inject<Ref<string>>('selectedAppFilter') as Ref<string>
 
 const stats = ref({
   today: 0,
@@ -24,8 +25,9 @@ async function loadStats() {
   
   const todayDate = dayjs().format('YYYY-MM-DD')
   const yesterdayDate = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
+  const appName = selectedAppFilter.value !== 'all' ? selectedAppFilter.value : undefined
   
-  const dailyStats = await window.electronAPI.getDailyStats(7)
+  const dailyStats = await window.electronAPI.getDailyStats(7, appName)
   const todayStats = dailyStats.find((d: { date: string; count: number }) => d.date === todayDate)
   const yesterdayStats = dailyStats.find((d: { date: string; count: number }) => d.date === yesterdayDate)
   

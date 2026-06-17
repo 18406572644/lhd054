@@ -5,18 +5,24 @@ import Dashboard from './components/Dashboard.vue'
 
 const todayCount = ref(0)
 const lastKey = ref('')
+const lastApp = ref('')
 
 const refreshData = ref(0)
+const selectedAppFilter = ref('all')
 
 provide('refreshTrigger', refreshData)
+provide('selectedAppFilter', selectedAppFilter)
 
 onMounted(() => {
   loadTodayStats()
   
   if (window.electronAPI?.onKeyPress) {
-    window.electronAPI.onKeyPress((key: string, count: number) => {
+    window.electronAPI.onKeyPress((key: string, count: number, appName?: string) => {
       todayCount.value = count
       lastKey.value = key
+      if (appName) {
+        lastApp.value = appName
+      }
       refreshData.value++
     })
   }
@@ -32,7 +38,7 @@ async function loadTodayStats() {
 
 <template>
   <div class="app-container">
-    <TitleBar :today-count="todayCount" :last-key="lastKey" />
+    <TitleBar :today-count="todayCount" :last-key="lastKey" :last-app="lastApp" />
     <Dashboard />
   </div>
 </template>
