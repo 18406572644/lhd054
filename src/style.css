@@ -1,0 +1,171 @@
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1a2234;
+  --bg-card: rgba(26, 34, 52, 0.8);
+  --border-color: rgba(0, 206, 209, 0.2);
+  --border-hover: rgba(0, 206, 209, 0.5);
+  --accent-primary: #00ced1;
+  --accent-secondary: #00b4b8;
+  --accent-glow: rgba(0, 206, 209, 0.3);
+  --text-primary: #ffffff;
+  --text-secondary: #a0aec0;
+  --text-tertiary: #718096;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  user-select: none;
+}
+
+body {
+  background: linear-gradient(135deg, #0a0e17 0%, #0d1525 50%, #0a0e17 100%);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary);
+}
+
+.arco-modal {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.arco-modal-header,
+.arco-modal-body,
+.arco-modal-footer {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.arco-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.arco-btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) !important;
+  border: none !important;
+}
+
+.arco-btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)) !important;
+}
+
+.arco-picker {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.arco-picker-input input {
+  color: var(--text-primary) !important;
+}
+
+.arco-picker:hover {
+  border-color: var(--border-hover) !important;
+}
+
+.arco-dropdown-menu {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.arco-dropdown-menu-item {
+  color: var(--text-secondary) !important;
+}
+
+.arco-dropdown-menu-item:hover {
+  background: var(--bg-tertiary) !important;
+  color: var(--accent-primary) !important;
+}
+
+.arco-message {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 60px rgba(0, 206, 209, 0.1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes count-up {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes key-flash {
+  0% {
+    background: var(--accent-primary);
+    transform: scale(1.1);
+  }
+  100% {
+    background: transparent;
+    transform: scale(1);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+.animate-count-up {
+  animation: count-up 0.3s ease-out;
+}
+
+.animate-key-flash {
+  animation: key-flash 0.3s ease-out;
+}
